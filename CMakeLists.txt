@@ -63,6 +63,8 @@ set(IMGUI_SOURCES
 set(SOURCES
         src/main.cpp
         src/libraries/glad.c
+        src/ResourceManager.cpp
+        src/ResourceManager.h
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${IMGUI_SOURCES})
