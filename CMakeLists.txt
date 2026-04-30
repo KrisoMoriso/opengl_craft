@@ -65,6 +65,14 @@ set(SOURCES
         src/libraries/glad.c
         src/ResourceManager.cpp
         src/ResourceManager.h
+        src/Game.cpp
+        src/Game.h
+        src/Shader.cpp
+        src/Shader.h
+        src/stb_image.cpp
+        src/Camera.cpp
+        src/Camera.h
+        src/openglDebug.h
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${IMGUI_SOURCES})
