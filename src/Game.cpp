@@ -19,7 +19,7 @@ Game::Game(){
     setupWindow();
     if (m_window == nullptr) printf("failed to init glfw window");
     setupImGui(m_window);
-    m_camera = Camera(m_window, {0.0f,0.0f,-3.0f});
+    m_camera = Camera(m_window, {0.0f,0.0f,3.0f});
     m_renderer = Renderer();
     m_renderer.init();
 }

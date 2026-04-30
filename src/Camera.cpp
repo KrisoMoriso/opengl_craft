@@ -31,11 +31,12 @@ void Camera::setScrollDelta(double deltaX, double deltaY){
 
 
 void Camera::processInputs(){
+    glm::vec3 levelFront = {m_front.x, 0.0f, m_front.z};
     if (glfwGetKey(m_window, GLFW_KEY_W) == GLFW_PRESS){
-        m_position += m_movementSpeed * m_front;
+        m_position += m_movementSpeed * levelFront;
     }
     if (glfwGetKey(m_window, GLFW_KEY_S) == GLFW_PRESS){
-        m_position -= m_movementSpeed * m_front;
+        m_position -= m_movementSpeed * levelFront;
     }
     if (glfwGetKey(m_window, GLFW_KEY_A) == GLFW_PRESS){
         m_position -= m_movementSpeed * m_right;

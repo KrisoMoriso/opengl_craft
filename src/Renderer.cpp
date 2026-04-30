@@ -28,7 +28,7 @@ void Renderer::render(glm::mat4 viewMatrix){
     glUseProgram(m_shader.m_shaderProgramID);
     glBindTexture(GL_TEXTURE_2D, m_texture);
 
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 void Renderer::loadTextures(){
@@ -52,43 +52,33 @@ void Renderer::loadTextures(){
 }
 
 
-float vertices[] = {
-    // positions         // colors
-    0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,   // bottom right
-   -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,   // bottom left
-    -0.5f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f,    // top
-
-    // positions         // colors
-    1.5f, -1.5f, -1.0f,  1.0f, 0.0f, 0.0f,   // bottom right
-   -1.5f, -1.5f, -1.0f,  0.0f, 1.0f, 0.0f,   // bottom left
-    -1.5f,  -1.5f, 1-.0f,  0.0f, 0.0f, 1.0f    // top
-};
-
-float texCoords[] = {
-    1.0f, 0.0f,  // lower-right corner
-    0.0f, 0.0f,  // lower-left corner
-    0.0f, 1.0f   // top-center corner
-};
 
 void Renderer::setupBuffers(){
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)nullptr);
-    glEnableVertexAttribArray(0);
-    // color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3* sizeof(float)));
-    glEnableVertexAttribArray(1);
+    VoxelFaceData voxelFaceData;
+    voxelFaceData.x = 0.0f;
+    voxelFaceData.y = 0.0f;
+    voxelFaceData.z = 0.0f;
+    voxelFaceData.faceId = 0;
+    voxelFaceData.atlasX = 0.0f;
+    voxelFaceData.atlasY = 0.0f;
+    voxelFaceData.pad1 = 0.0f;
+    voxelFaceData.pad2 = 0.0f;
+    voxelFaceData.ao0 = 140 ;
+    voxelFaceData.ao1 = 210;
+    voxelFaceData.ao2 = 210;
+    voxelFaceData.ao3 = 210;
 
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(texCoords), texCoords, GL_STATIC_DRAW);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)nullptr);
-    glEnableVertexAttribArray(2);
+    static GLuint emptyVAO;
+    glGenVertexArrays(1, &emptyVAO);
+    glBindVertexArray(emptyVAO);
+
+    GLuint ssboID;
+    glGenBuffers(1, &ssboID);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssboID);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(VoxelFaceData), &voxelFaceData, GL_STATIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssboID);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+
 
 }
