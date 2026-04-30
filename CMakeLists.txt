@@ -73,6 +73,8 @@ set(SOURCES
         src/Camera.cpp
         src/Camera.h
         src/openglDebug.h
+        src/Renderer.cpp
+        src/Renderer.h
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${IMGUI_SOURCES})

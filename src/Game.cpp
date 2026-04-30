@@ -14,45 +14,20 @@
 #include "Camera.h"
 #include "stb_image.h"
 
-#define SKYBLUE    0.4f, 0.749f, 1.0f, 1.0f  // Sky Blue
 
 Game::Game(){
     setupWindow();
     if (m_window == nullptr) printf("failed to init glfw window");
     setupImGui(m_window);
-    m_shader = Shader("../src/shaders/voxel.vs.glsl", "../src/shaders/voxel.fs.glsl");
-    setupBuffers();
-    loadTextures();
     m_camera = Camera(m_window, {0.0f,0.0f,-3.0f});
+    m_renderer = Renderer();
+    m_renderer.init();
 }
 
 void Game::mainLoop(){
     while (!glfwWindowShouldClose(m_window)){
         m_camera.updateAndHandleCamera();
-
-        glm::mat4 model(1.0f);
-        model = glm::translate(model, glm::vec3(0.5f, 0.5f, 0.0f));
-
-        auto view = m_camera.getViewMatrix();
-
-        glm::mat4 projection = glm::perspective(glm::radians(90.0f), 800.0f / 600.0f, 0.1f, 100.0f);
-
-        glm::mat4 mvp = projection * view * model;
-
-        int mvpUniformLocation = glGetUniformLocation(m_shader.m_shaderProgramID, "mvp");
-        glUniformMatrix4fv(mvpUniformLocation, 1, GL_FALSE, glm::value_ptr(mvp));
-
-        glClearColor(SKYBLUE);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glUseProgram(m_shader.m_shaderProgramID);
-        glBindTexture(GL_TEXTURE_2D, m_texture);
-
-        float timeValue = glfwGetTime();
-        float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
-        int vertexColorLocation = glGetUniformLocation(m_shader.m_shaderProgramID, "ourColor");
-        glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-
+        m_renderer.render(m_camera.getViewMatrix());
         displayImGui();
         glfwSwapBuffers(m_window);
         glfwPollEvents();
@@ -68,68 +43,7 @@ void Game::terminateGame(){
 }
 
 
-void Game::loadTextures(){
-    //textures
-    int width, height, nrChannels;
-    unsigned char *data = stbi_load("../textures/block/dirt.png", &width, &height, &nrChannels, 0);
-    if (data == nullptr){
-        printf("failed to load texture");
-        return;
-    }
-    glGenTextures(1, &m_texture);
-    glBindTexture(GL_TEXTURE_2D, m_texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    stbi_image_free(data);
-    glBindTexture(GL_TEXTURE_2D, m_texture);
-}
 
-
-
-float vertices[] = {
-    // positions         // colors
-    0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,   // bottom right
-   -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,   // bottom left
-    -0.5f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f,    // top
-
-    // positions         // colors
-    1.5f, -1.5f, -1.0f,  1.0f, 0.0f, 0.0f,   // bottom right
-   -1.5f, -1.5f, -1.0f,  0.0f, 1.0f, 0.0f,   // bottom left
-    -1.5f,  -1.5f, 1-.0f,  0.0f, 0.0f, 1.0f    // top
-};
-
-float texCoords[] = {
-    1.0f, 0.0f,  // lower-right corner
-    0.0f, 0.0f,  // lower-left corner
-    0.0f, 1.0f   // top-center corner
-};
-
-void Game::setupBuffers(){
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)nullptr);
-    glEnableVertexAttribArray(0);
-    // color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3* sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(texCoords), texCoords, GL_STATIC_DRAW);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)nullptr);
-    glEnableVertexAttribArray(2);
-
-}
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)
 {
@@ -141,7 +55,8 @@ void Game::setupWindow(){
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    GLFWwindow* window = glfwCreateWindow(800, 600, "Opengl craft", nullptr, nullptr);
+    static constexpr int WIDTH = 1400, HEIGHT = 800;
+    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Opengl craft", nullptr, nullptr);
     m_window = window;
     if (window == nullptr){
         printf("Failed to create window");
@@ -153,7 +68,7 @@ void Game::setupWindow(){
         printf("Failed to init glad");
         return;
     }
-    framebufferSizeCallback(window, 800, 600);
+    framebufferSizeCallback(window, WIDTH, HEIGHT);
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
     glEnable(GL_DEPTH_TEST);
     glfwSwapInterval(1);

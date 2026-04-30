@@ -1,5 +1,6 @@
 #pragma once
 #include "Camera.h"
+#include "Renderer.h"
 #include "GLFW/glfw3.h"
 #include "Shader.h"
 
@@ -9,18 +10,15 @@ public:
     Game();
     void mainLoop();
     void terminateGame();
-    void loadTextures();
 
     Game(const Game&) = delete;
     void operator=(const Game&) = delete;
 
 private:
     GLFWwindow* m_window;
-    Shader m_shader;
     Camera m_camera;
+    Renderer m_renderer;
     void setupWindow();
-    unsigned int m_texture;
-    void setupBuffers();
     void setupImGui(GLFWwindow* window);
     void displayImGui();
     float m_timeOfLastFrame;
