@@ -1,11 +1,9 @@
 #pragma once
-#include <string>
-
-
+#include <glad/glad.h>
 class Shader {
 public:
     Shader(){}
-    unsigned int m_shaderProgramID;
+    GLuint m_shaderProgramID;
 
     Shader(const char* vertexPath, const char* fragmentPath);
     void useShaderProgram();

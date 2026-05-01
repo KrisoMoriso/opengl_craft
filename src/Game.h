@@ -1,4 +1,5 @@
 #pragma once
+#include <glad/glad.h>
 #include "Camera.h"
 #include "Renderer.h"
 #include "GLFW/glfw3.h"

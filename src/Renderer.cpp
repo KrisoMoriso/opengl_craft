@@ -2,6 +2,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "Renderer.h"
+
+#include "MeshSSBO.h"
 #include "stb_image.h"
 #define SKYBLUE    0.4f, 0.749f, 1.0f, 1.0f  // Sky Blue
 void Renderer::init(){
@@ -11,6 +13,8 @@ void Renderer::init(){
 }
 
 void Renderer::render(glm::mat4 viewMatrix){
+    glClearColor(SKYBLUE);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glm::mat4 model(1.0f);
     model = glm::translate(model, glm::vec3(0.5f, 0.5f, 0.0f));
 
@@ -20,15 +24,7 @@ void Renderer::render(glm::mat4 viewMatrix){
 
     glm::mat4 mvp = projection * view * model;
 
-    int mvpUniformLocation = glGetUniformLocation(m_shader.m_shaderProgramID, "mvp");
-    glUniformMatrix4fv(mvpUniformLocation, 1, GL_FALSE, glm::value_ptr(mvp));
-
-    glClearColor(SKYBLUE);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glUseProgram(m_shader.m_shaderProgramID);
-    glBindTexture(GL_TEXTURE_2D, m_texture);
-
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    m_mesh.draw(mvp, m_shader.m_shaderProgramID, m_texture);
 }
 
 void Renderer::loadTextures(){
@@ -54,7 +50,7 @@ void Renderer::loadTextures(){
 
 
 void Renderer::setupBuffers(){
-    VoxelFaceData voxelFaceData;
+    MeshSSBO::VoxelFaceData voxelFaceData;
     voxelFaceData.x = 0.0f;
     voxelFaceData.y = 0.0f;
     voxelFaceData.z = 0.0f;
@@ -71,14 +67,7 @@ void Renderer::setupBuffers(){
     static GLuint emptyVAO;
     glGenVertexArrays(1, &emptyVAO);
     glBindVertexArray(emptyVAO);
-
-    GLuint ssboID;
-    glGenBuffers(1, &ssboID);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssboID);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(VoxelFaceData), &voxelFaceData, GL_STATIC_DRAW);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssboID);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-
-
+    std::vector<MeshSSBO::VoxelFaceData> dataVector;
+    dataVector.push_back(voxelFaceData);
+    m_mesh.upload(dataVector);
 }

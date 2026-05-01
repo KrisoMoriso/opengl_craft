@@ -75,6 +75,10 @@ set(SOURCES
         src/openglDebug.h
         src/Renderer.cpp
         src/Renderer.h
+        src/World.cpp
+        src/World.h
+        src/MeshSSBO.cpp
+        src/MeshSSBO.h
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${IMGUI_SOURCES})
