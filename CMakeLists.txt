@@ -9,6 +9,15 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Automatically detect the compiler and apply static linking
+if(MSVC)
+    # If Ninja is using the Microsoft compiler
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+elseif(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    # If Ninja is using MinGW, GCC, or Clang
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static -static-libgcc -static-libstdc++")
+endif()
+
 include(FetchContent)
 
 # ---------------------------------------------------------
@@ -79,6 +88,12 @@ set(SOURCES
         src/World.h
         src/MeshSSBO.cpp
         src/MeshSSBO.h
+        src/ThreadPool.cpp
+        src/ThreadPool.h
+        src/Block.cpp
+        src/Block.h
+        src/Chunk.cpp
+        src/Chunk.h
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${IMGUI_SOURCES})

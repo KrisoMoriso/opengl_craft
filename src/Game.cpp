@@ -13,21 +13,28 @@
 
 #include "Camera.h"
 #include "stb_image.h"
+#define SKYBLUE    0.4f, 0.749f, 1.0f, 1.0f  // Sky Blue
 
 
-Game::Game(){
+Game::Game() : m_threadPool(6),
+                m_renderer(m_world, m_threadPool, RENDER_DISTANCE),
+                m_world(m_threadPool, m_renderer, WORLD_SEED, RENDER_DISTANCE)
+{
     setupWindow();
     if (m_window == nullptr) printf("failed to init glfw window");
     setupImGui(m_window);
-    m_camera = Camera(m_window, {0.0f,0.0f,3.0f});
-    m_renderer = Renderer();
+    m_camera = Camera(m_window, {0.0f,170.0f,3.0f});
     m_renderer.init();
 }
 
 void Game::mainLoop(){
     while (!glfwWindowShouldClose(m_window)){
+        m_renderer.update_meshes(m_camera.m_position);
+        m_world.generate_world(m_camera.m_position);
+        glClearColor(SKYBLUE);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         m_camera.updateAndHandleCamera();
-        m_renderer.render(m_camera.getViewMatrix());
+        m_renderer.render_chunks(m_camera.m_position, m_camera.getViewMatrix());
         displayImGui();
         glfwSwapBuffers(m_window);
         glfwPollEvents();

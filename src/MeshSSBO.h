@@ -15,9 +15,12 @@ public:
         float ao0, ao1, ao2, ao3;
     };
     void upload(const std::vector<VoxelFaceData> &dataVector);
+    void unload();
     void draw(glm::mat4& mvp, GLuint shaderProgramID, GLuint textureID);
+    size_t GetSize(){ return m_size;}
 private:
-    GLuint m_ssboID;
+    size_t m_size = 0;
+    GLuint m_ssboID = 0;
 
 
 };

@@ -8,6 +8,11 @@ void MeshSSBO::upload(const std::vector<VoxelFaceData>& dataVector){
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(VoxelFaceData) * dataVector.size(), dataVector.data(), GL_STATIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_ssboID);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    m_size = dataVector.size();
+}
+
+void MeshSSBO::unload(){
+    glDeleteBuffers(1, &m_ssboID);
 }
 
 void MeshSSBO::draw(glm::mat4 &mvp, GLuint shaderProgramID, GLuint textureID){
@@ -19,5 +24,5 @@ void MeshSSBO::draw(glm::mat4 &mvp, GLuint shaderProgramID, GLuint textureID){
     glUseProgram(shaderProgramID);
     glBindTexture(GL_TEXTURE_2D, textureID);
 
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glDrawArrays(GL_TRIANGLES, 0, 6 * m_size);
 }

@@ -15,6 +15,7 @@ public:
     };
     CameraDebugInfo getDebugInfo();
     void setScrollDelta(double deltaX, double deltaY);
+    glm::vec3 m_position = {0, 0, 0};
 private:
     static constexpr float YAW         = -90.0f;
     static constexpr float PITCH       =  0.0f;
@@ -22,7 +23,6 @@ private:
     static constexpr float SENSITIVITY =  0.1f;
     static constexpr float FOV         =  90.0f;
     GLFWwindow* m_window = nullptr;
-    glm::vec3 m_position = {0, 0, 0};
     glm::vec3 m_front = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 m_up = glm::vec3(0.0f, 1.0f, 0.0f);
     glm::vec3 m_right = {0,0,0};
