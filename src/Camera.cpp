@@ -82,6 +82,9 @@ void Camera::processMouseInputs(){
     if (m_pitch < -89.9999f){
         m_pitch = -89.9999f;
     }
+    m_movementSpeed += m_scrollDeltaY * 0.02;
+    m_scrollDeltaX = 0;
+    m_scrollDeltaY = 0;
 
 }
 
