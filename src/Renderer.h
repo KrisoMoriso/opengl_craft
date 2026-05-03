@@ -13,13 +13,13 @@ public:
 private:
     GLuint m_emptyVAO;
     Shader m_shader;
-    MeshSSBO m_mesh;
     GLuint m_texture = 0;
+    GLuint m_grassColormap = 0;
     void loadTextures();
     void setupBuffers();
 public:
     void update_meshes(glm::vec3 player_pos);
-    void render_chunks(glm::vec3 player_pos, glm::mat4 viewMatrix);
+    void render_chunks(glm::vec3 player_pos, glm::mat4 viewMatrix, int windowX, int windowY);
     // Renderer(){}
     // for World.cpp so that chunks are erased and unloaded at the same time
     void add_chunk_to_unload(World::ChunkPos pos){
@@ -51,10 +51,10 @@ private:
     MeshJob pack_mesh_job(World::ChunkPos chunk_pos);
     void update_mesh_chunk(const MeshJob& mesh_job, ThreadPool::SafeQueue<MeshResult>& result_queue);
     void perform_culling(int x, int y, int z, unsigned short current_block_material,
-                     std::vector<MeshSSBO::VoxelFaceData>& faces, const MeshJob& mesh_job);
+                         std::vector<MeshSSBO::VoxelFaceData>& faces, const MeshJob& mesh_job, float temperature, float humidity);
 
     void add_face(int face_id, int x, int y, int z, unsigned short block_material,
-                  std::vector<MeshSSBO::VoxelFaceData>& faces, const MeshJob& job);
+                  std::vector<MeshSSBO::VoxelFaceData>& faces, const MeshJob& job, float temperature, float humidity);
     bool should_render_face(unsigned short current_material, unsigned short neighbour_material);
     bool send_chunk_to_thread(World::ChunkPos chunk_pos, bool is_priority);
     ThreadPool::SafeQueue<MeshResult> m_result_queue;
@@ -63,7 +63,7 @@ private:
     std::queue<World::ChunkPos> m_queue_to_mesh_priority;
     World::ChunkPos m_last_player_chunk;
     std::vector<World::ChunkPos> m_chunks_to_unload;
-    static glm::vec2 get_atlas_coords(unsigned short material_type, int face_id);
+    static float getTextureLayer(unsigned short material_type, int face_id);
     void upload_mesh_to_gpu(const MeshResult& mesh_result);
     unsigned char compute_ao(const MeshJob& job, int x, int y, int z, int dx1, int dy1, int dz1, int dx2, int dy2,
                              int dz2,

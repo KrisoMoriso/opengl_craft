@@ -3,9 +3,20 @@
 #include "Chunk.h"
 #include "Game.h"
 #define FASTNOISELITE_IMPLEMENTATION
+#if defined(__GNUC__) || defined(__clang__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Waggressive-loop-optimizations"
+#endif
+
 #include "FastNoiseLite.h"
+
+// Pop the state back to normal so your own code is still checked
+#if defined(__GNUC__) || defined(__clang__)
+    #pragma GCC diagnostic pop
+#endif
 #include <cmath>
 #include <glm/glm.hpp>
+#include <algorithm>
 World::World(ThreadPool& threadPool, Renderer& renderer, int seed, int renderDistance) : m_thread_pool(threadPool), m_renderer(renderer)
 {
     m_seed = seed;
@@ -167,14 +178,40 @@ void World::generate_chunk(GenerationJob generation_job,
     noise_cave_mask.SetSeed(m_seed + 3);
     noise_cave_mask.SetFrequency(0.005f);
 
+    FastNoiseLite temperature;
+    temperature.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    temperature.SetSeed(m_seed + 4);
+    temperature.SetFrequency(0.001f);
+    temperature.SetFractalType(FastNoiseLite::FractalType_FBm);
+    temperature.SetFractalOctaves(4);
+
+    FastNoiseLite humidity;
+    humidity.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    humidity.SetSeed(m_seed + 10);
+    humidity.SetFrequency(0.0015f);
+    humidity.SetFractalType(FastNoiseLite::FractalType_FBm);
+    humidity.SetFractalOctaves(4);
+
     GenerationResult result;
     result.chunk_pos = generation_job.chunk_pos;
     result.chunk = std::make_unique<Chunk>();
+
+
 
     for (int x = 0; x <= 15; ++x) {
         for (int z = 0; z <= 15; ++z) {
             int world_x = result.chunk_pos.x * 16 + x;
             int world_z = result.chunk_pos.z * 16 + z;
+
+            float rawTemperature = temperature.GetNoise((float)world_x,(float)world_z );
+            float rawHumidity = humidity.GetNoise((float)world_x,(float)world_z );
+
+            float stretchFactor = 1.8f;
+            rawTemperature = std::clamp(rawTemperature * stretchFactor, -1.0f, 1.0f);
+            rawHumidity    = std::clamp(rawHumidity * stretchFactor, -1.0f, 1.0f);
+
+            result.chunk->m_blockTemperatures[x][z] = (rawTemperature + 1.0f) * 0.5f;
+            result.chunk->m_blockHumidities[x][z] = (rawHumidity + 1.0f) * 0.5f;
 
             float val_macro = noise_macro.GetNoise((float)world_x, (float)world_z);
             float val_micro = noise_micro.GetNoise((float)world_x, (float)world_z);

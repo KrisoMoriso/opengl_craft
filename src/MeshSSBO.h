@@ -10,13 +10,13 @@ public:
         float x, y, z;
         float faceId;
 
-        float atlasX, atlasY;
-        float pad1, pad2;
+        float textureLayer, temperature;
+        float isWater, humidity;
         float ao0, ao1, ao2, ao3;
     };
     void upload(const std::vector<VoxelFaceData> &dataVector);
     void unload();
-    void draw(glm::mat4& mvp, GLuint shaderProgramID, GLuint textureID);
+    void draw(glm::mat4& mvp, GLuint shaderProgramID, GLuint textureID, GLuint grassColormapTextureID);
     size_t GetSize(){ return m_size;}
 private:
     size_t m_size = 0;

@@ -8,6 +8,12 @@
 #include "stb_image.h"
 
 #include <format>
+#include <map>
+
+#include "Camera.h"
+#include "Camera.h"
+#include "Camera.h"
+#include "Camera.h"
 #include "Game.h"
 #include "ResourceManager.h"
 
@@ -36,51 +42,67 @@ void Renderer::init(){
 // }
 
 void Renderer::loadTextures(){
-    //textures
-    int width, height, nrChannels;
-    unsigned char *data = stbi_load("../textures/block/dirt.png", &width, &height, &nrChannels, 0);
-    if (data == nullptr){
-        printf("failed to load texture");
-        return;
-    }
+    glUseProgram(m_shader.m_shaderProgramID);
+    std::vector<std::string> textureFiles = {
+        "../textures/block/dirt.png", //0
+        "../textures/block/grass_block_side.png",
+        "../textures/block/grass_block_top.png",
+        "../textures/block/stone.png",
+        "../textures/block/oak_planks.png",
+        "../textures/block/oak_log.png",
+        "../textures/block/oak_log_top.png",
+        "../textures/block/sand.png",
+        "../textures/block/water_still.png", //8
+        "../textures/block/grass_block_side_overlay.png" //9
+    };
     glGenTextures(1, &m_texture);
-    glBindTexture(GL_TEXTURE_2D, m_texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_LOD_BIAS, -1.5f);
+    int width = 16, height = 16;
+    int layerCount = textureFiles.size();
+    int mipLevels = 5;
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY, mipLevels, GL_RGBA8, width, height, layerCount);
+    for (int i = 0; i < layerCount; i++) {
+        int widthImage, heightImage, nrChannels;
+        unsigned char* data = stbi_load(textureFiles[i].c_str(), &widthImage, &heightImage, &nrChannels, 4);
+        if (data != nullptr) {
+            glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
+            stbi_image_free(data);
+        } else {
+            printf("Failed to load texture: %s\n", textureFiles[i].c_str());
+        }
+    }
+    glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture);
+    glUniform1i(glGetUniformLocation(m_shader.m_shaderProgramID, "texture0"), 0);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -1.5f);
+    int widthImage, heightImage, nrChannels;
+    unsigned char* grassColorMapData = stbi_load("../textures/colormap/grass.png", &widthImage, &heightImage, &nrChannels, 4);
+    glGenTextures(1, &m_grassColormap);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, m_grassColormap);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glUniform1i(glGetUniformLocation(m_shader.m_shaderProgramID, "grassColormap"), 1);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, widthImage, heightImage, 0, GL_RGBA, GL_UNSIGNED_BYTE, grassColorMapData);
+    if (grassColorMapData == nullptr) printf("failed to load grass colormap");
+    stbi_image_free(grassColorMapData);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    stbi_image_free(data);
-    glBindTexture(GL_TEXTURE_2D, m_texture);
 }
 
 
 
 void Renderer::setupBuffers(){
-    MeshSSBO::VoxelFaceData voxelFaceData;
-    voxelFaceData.x = 0.0f;
-    voxelFaceData.y = 0.0f;
-    voxelFaceData.z = 0.0f;
-    voxelFaceData.faceId = 0;
-    voxelFaceData.atlasX = 0.0f;
-    voxelFaceData.atlasY = 0.0f;
-    voxelFaceData.pad1 = 0.0f;
-    voxelFaceData.pad2 = 0.0f;
-    voxelFaceData.ao0 = 140 ;
-    voxelFaceData.ao1 = 210;
-    voxelFaceData.ao2 = 210;
-    voxelFaceData.ao3 = 210;
-
     glGenVertexArrays(1, &m_emptyVAO);
     glBindVertexArray(m_emptyVAO);
-    std::vector<MeshSSBO::VoxelFaceData> dataVector;
-    dataVector.push_back(voxelFaceData);
-    m_mesh.upload(dataVector);
 }
 
 
@@ -165,12 +187,12 @@ void Renderer::update_meshes(glm::vec3 player_pos){
     }
 }
 
-void Renderer::render_chunks(glm::vec3 player_pos, glm::mat4 viewMatrix)
+void Renderer::render_chunks(glm::vec3 player_pos, glm::mat4 viewMatrix, int windowX, int windowY)
 {
     glBindVertexArray(m_emptyVAO);
     World::ChunkPos player_chunk = World::get_chunk_position(player_pos);
     int render_distance = m_renderDistance;
-    glm::mat4 projection = glm::perspective(glm::radians(90.0f), 800.0f / 600.0f, 0.01f, 1000.0f);
+    glm::mat4 projection = glm::perspective(glm::radians(90.0f), (float)windowX / (float)windowY, 0.01f, 1000.0f);
 
     Frustum frustum = extract_frustum(projection, viewMatrix);
 
@@ -192,7 +214,7 @@ void Renderer::render_chunks(glm::vec3 player_pos, glm::mat4 viewMatrix)
                     glm::mat4 model(1.0f);
                     model = glm::translate(model, glm::vec3(float(chunk_pos.x * 16), float(chunk_pos.y * 16), float(chunk_pos.z * 16)));
                     glm::mat4 mvp = projection * viewMatrix * model;
-                    pair.second.draw(mvp, m_shader.m_shaderProgramID, m_texture);
+                    pair.second.draw(mvp, m_shader.m_shaderProgramID, m_texture, m_grassColormap);
                 }
                 auto it = m_chunk_meshes_transparent.find(pair.first);
                 if (it != m_chunk_meshes_transparent.end() and it->second.GetSize() > 0) {
@@ -222,7 +244,7 @@ void Renderer::render_chunks(glm::vec3 player_pos, glm::mat4 viewMatrix)
 
         glm::mat4 mvp = projection * viewMatrix * model;
 
-        transparent_chunk.second.draw(mvp, m_shader.m_shaderProgramID, m_texture);
+        transparent_chunk.second.draw(mvp, m_shader.m_shaderProgramID, m_texture, m_grassColormap);
 
     }
     // rlDisableVertexArray();
@@ -301,9 +323,11 @@ void Renderer::update_mesh_chunk(const MeshJob& mesh_job, ThreadPool::SafeQueue<
         for (int y = 0; y < 16; ++y){
             for (int z = 0; z < 16; ++z){
                 if (World::BLOCK_MATERIALS::is_solid(current_block->m_material_type)){
-                    perform_culling(x, y, z, current_block->m_material_type, opaque_faces, mesh_job);
+                    perform_culling(x, y, z, current_block->m_material_type, opaque_faces, mesh_job,
+                     mesh_job.center_chunk->m_blockTemperatures[x][z], mesh_job.center_chunk->m_blockHumidities[x][z]);
                 } else if (World::BLOCK_MATERIALS::is_transparent(current_block->m_material_type)){
-                    perform_culling(x, y, z, current_block->m_material_type, transparent_faces, mesh_job);
+                    perform_culling(x, y, z, current_block->m_material_type, transparent_faces, mesh_job,
+                     mesh_job.center_chunk->m_blockTemperatures[x][z], mesh_job.center_chunk->m_blockHumidities[x][z]);
                 }
                 current_block++;
             }
@@ -319,38 +343,40 @@ void Renderer::update_mesh_chunk(const MeshJob& mesh_job, ThreadPool::SafeQueue<
 
 void Renderer::perform_culling(int x, int y, int z,
                         unsigned short current_block_material,
-                        std::vector<MeshSSBO::VoxelFaceData>& faces, const MeshJob& mesh_job){
+                        std::vector<MeshSSBO::VoxelFaceData>& faces, const MeshJob& mesh_job,
+                        float temperature, float humidity
+                        ){
     //check if block is at chunk edge
     //check X-
     unsigned short neighbour_material = get_block_material(mesh_job, x - 1, y, z);
     if (should_render_face(current_block_material, neighbour_material)){
-        add_face(2, x, y, z,current_block_material, faces, mesh_job);
+        add_face(2, x, y, z,current_block_material, faces, mesh_job, temperature, humidity);
     }
     //X+
     neighbour_material = get_block_material(mesh_job, x + 1, y, z);
     if (should_render_face(current_block_material, neighbour_material)) {
-        add_face(3, x, y, z, current_block_material, faces, mesh_job);
+        add_face(3, x, y, z, current_block_material, faces, mesh_job, temperature, humidity);
     }
     // Z-
     neighbour_material = get_block_material(mesh_job, x, y, z - 1);
     if (should_render_face(current_block_material, neighbour_material)) {
-        add_face(1, x, y, z, current_block_material, faces, mesh_job);
+        add_face(1, x, y, z, current_block_material, faces, mesh_job, temperature, humidity);
     }
     // Z+
     neighbour_material = get_block_material(mesh_job, x, y, z + 1);
     if (should_render_face(current_block_material, neighbour_material)) {
-        add_face(0, x, y, z, current_block_material, faces, mesh_job);
+        add_face(0, x, y, z, current_block_material, faces, mesh_job, temperature, humidity);
     }
     // Y-
     neighbour_material = get_block_material(mesh_job, x, y - 1, z);
     if (should_render_face(current_block_material, neighbour_material)) {
-        add_face(5, x, y, z, current_block_material, faces, mesh_job);
+        add_face(5, x, y, z, current_block_material, faces, mesh_job, temperature, humidity);
     }
     // Y+
     neighbour_material = get_block_material(mesh_job, x, y + 1, z);
     if (should_render_face(current_block_material, neighbour_material) or
         (current_block_material == World::BLOCK_MATERIALS::WATER and neighbour_material != World::BLOCK_MATERIALS::WATER)) {
-        add_face(4, x, y, z, current_block_material, faces, mesh_job);
+        add_face(4, x, y, z, current_block_material, faces, mesh_job, temperature, humidity);
     }
 }
 bool Renderer::should_render_face(unsigned short current_material, unsigned short neighbour_material){
@@ -361,48 +387,46 @@ bool Renderer::should_render_face(unsigned short current_material, unsigned shor
     return current_material != neighbour_material;
 }
 
-glm::vec2 Renderer::get_atlas_coords(unsigned short material_type, int face_id){
-    float atlas_pos_x = 0.0f;
-    float atlas_pos_y = 0.0f;
+float Renderer::getTextureLayer(unsigned short material_type, int face_id){
+    float textureLayer = 0;
     if (material_type == World::BLOCK_MATERIALS::DIRT){
-        //default
+        textureLayer = 0;
     } else if (material_type == World::BLOCK_MATERIALS::GRASS_BLOCK){
         if (face_id <= 3){
-            atlas_pos_x = 1.0f;
+            textureLayer = 1;
         } else if (face_id == 4){
-            atlas_pos_x = 2.0f;
+            textureLayer = 2;
         } else if (face_id == 5){
-            //default
+            textureLayer = 0;
         }
     } else if (material_type == World::BLOCK_MATERIALS::STONE){
-        atlas_pos_y = 1.0f;
+        textureLayer = 3;
     } else if (material_type == World::BLOCK_MATERIALS::OAK_PLANKS){
-        atlas_pos_y = 2.0f;
+        textureLayer = 4;
     } else if (material_type == World::BLOCK_MATERIALS::OAK_LOG){
         if (face_id <= 3){
-            atlas_pos_x = 1.0f;
-            atlas_pos_y = 2.0f;
+            textureLayer = 5;
         } else{
-            atlas_pos_x = 2.0f;
-            atlas_pos_y = 2.0f;
+            textureLayer = 6;
         }
     } else if (material_type == World::BLOCK_MATERIALS::SAND){
-        atlas_pos_y = 3.0f;
+        textureLayer = 7;
     } else if (material_type == World::BLOCK_MATERIALS::WATER){
-        atlas_pos_y = 4.0f;
+        textureLayer = 8;
     }
-    return glm::vec2{atlas_pos_x, atlas_pos_y};
+    return textureLayer;
 }
 
 
 void Renderer::add_face(int face_id, int x, int y, int z,
                         unsigned short block_material,
-                        std::vector<MeshSSBO::VoxelFaceData>& faces, const MeshJob& job
+                        std::vector<MeshSSBO::VoxelFaceData>& faces, const MeshJob& job,
+                        float temperature, float humidity
 ){
     bool is_top_block_of_water = block_material == World::BLOCK_MATERIALS::WATER and get_block_material(job, x, y + 1, z) != World::BLOCK_MATERIALS::WATER;
 
     // Get Atlas Coordinates
-    glm::vec2 atlas_coords = get_atlas_coords(block_material, face_id);
+    float textureLayer = getTextureLayer(block_material, face_id);
 
     // Calculate AO for the 4 corners
     float ao_results[4];
@@ -421,10 +445,10 @@ void Renderer::add_face(int face_id, int x, int y, int z,
     faceData.z = (float)z;
     faceData.faceId = (float)face_id;
 
-    faceData.atlasX = atlas_coords.x;
-    faceData.atlasY = atlas_coords.y;
-    faceData.pad1 = is_top_block_of_water ? 1.0f : 0.0f; // Use padding to tell shader it's water!
-    faceData.pad2 = 0.0f;
+    faceData.textureLayer = textureLayer;
+    faceData.temperature = temperature;
+    faceData.isWater = is_top_block_of_water ? 1.0f : 0.0f;
+    faceData.humidity = humidity;
 
     faceData.ao0 = ao_results[0];
     faceData.ao1 = ao_results[1];
@@ -432,8 +456,6 @@ void Renderer::add_face(int face_id, int x, int y, int z,
     faceData.ao3 = ao_results[3];
 
     faces.push_back(faceData);
-
-
 }
 
 unsigned short Renderer::get_block_material(const MeshJob& job, int x, int y, int z) {

@@ -3,7 +3,7 @@
 // 1. Memory-aligned blueprint matching our C++ struct exactly
 struct VoxelFaceData {
     vec4 positionAndFace; // x, y, z, faceId
-    vec4 atlasAndPadding; // atlasX, atlasY, pad, pad
+    vec4 textureLayerAndTempHumidity; // textureLayer, temperature, isWater, humidity
     vec4 ao;              // ao0, ao1, ao2, ao3
 };
 
@@ -16,7 +16,10 @@ uniform mat4 mvp;
 
 out vec2 fragTexCoord;
 out vec4 fragColor;
+out float textureLayer;
 
+out float temperature;
+out float humidity;
 // --- YOUR EXACT C++ ARRAYS MAPPED TO GLSL ---
 
 // Renderer.h: m_face_vertices flattened into 24 points
@@ -68,15 +71,18 @@ void main() {
 
     // Check for water logic (you had a y = 0.875f check in add_face).
     // You can pass a flag in pad1 to handle this!
-    if (face.atlasAndPadding.z > 0.0 && localPos.y == 1.0) localPos.y = 0.875;
+    if (face.textureLayerAndTempHumidity.z > 0.0 && localPos.y == 1.0) localPos.y = 0.875;
+
+    temperature = face.textureLayerAndTempHumidity.y;
+    humidity = face.textureLayerAndTempHumidity.w;
 
 
     vec3 finalPos = face.positionAndFace.xyz + localPos;
     gl_Position = mvp * vec4(finalPos, 1.0);
-
     // 2. Calculate UVs
-    fragTexCoord = (FACE_UVS[uniqueCornerId] + face.atlasAndPadding.xy);
+    fragTexCoord = (FACE_UVS[uniqueCornerId]);
 
+    textureLayer = face.textureLayerAndTempHumidity.x;
     // 3. Calculate Final Vertex Color (Base Shade * AO)
     // Extract the specific AO corner we are rendering right now
     float cornerAO;
@@ -86,6 +92,11 @@ void main() {
     else                          cornerAO = face.ao.w;
 
     float combinedShade = FACE_SHADES[faceId] * (cornerAO / 255.0);
-    fragColor = vec4(combinedShade, combinedShade, combinedShade, 1.0);
+    if(textureLayer == 8.0){ //water
+        fragColor = vec4(combinedShade, combinedShade, combinedShade, 1.0) * vec4(0.0, 0.122, 0.9, 1.0);
+    } else {
+        fragColor = vec4(combinedShade, combinedShade, combinedShade, 1.0);
+    }
+
 }
 

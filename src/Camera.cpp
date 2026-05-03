@@ -76,11 +76,11 @@ void Camera::processMouseInputs(){
     m_yaw  += deltaX;
     m_pitch -= deltaY;
 
-    if (m_pitch > 90.0f){
-        m_pitch = 90.0f;
+    if (m_pitch > 89.9999f){
+        m_pitch = 89.9999f;
     }
-    if (m_pitch < -90.0f){
-        m_pitch = -90.0f;
+    if (m_pitch < -89.9999f){
+        m_pitch = -89.9999f;
     }
 
 }

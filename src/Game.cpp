@@ -34,7 +34,9 @@ void Game::mainLoop(){
         glClearColor(SKYBLUE);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         m_camera.updateAndHandleCamera();
-        m_renderer.render_chunks(m_camera.m_position, m_camera.getViewMatrix());
+        int windowX, windowY;
+        glfwGetWindowSize(m_window, &windowX, &windowY);
+        m_renderer.render_chunks(m_camera.m_position, m_camera.getViewMatrix(), windowX, windowY);
         displayImGui();
         glfwSwapBuffers(m_window);
         glfwPollEvents();
@@ -78,7 +80,7 @@ void Game::setupWindow(){
     framebufferSizeCallback(window, WIDTH, HEIGHT);
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
     glEnable(GL_DEPTH_TEST);
-    glfwSwapInterval(1);
+    // glfwSwapInterval(1);
     glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetWindowUserPointer(m_window, this);
     glfwSetScrollCallback(m_window, [](GLFWwindow* windowLambda, double deltaX, double deltaY){
@@ -87,6 +89,8 @@ void Game::setupWindow(){
         gameInstance->m_camera.setScrollDelta(deltaX, deltaY);
     });
     glEnable(GL_CULL_FACE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 void Game::setupImGui(GLFWwindow* window){
     IMGUI_CHECKVERSION();
@@ -98,6 +102,7 @@ void Game::setupImGui(GLFWwindow* window){
     ImGui::StyleColorsDark();
 }
 void Game::displayImGui(){
+    World::ChunkPos chunkPos = World::get_chunk_position(m_camera.m_position);
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -113,6 +118,9 @@ void Game::displayImGui(){
     ImGui::Text("FPS: %.0f", io.Framerate);
     glm::vec3 cameraPos = m_camera.getDebugInfo().position;
     ImGui::Text("X:%f Y:%f Z%f", cameraPos.x, cameraPos.y, cameraPos.z);
+    if (m_world.m_chunks.contains(chunkPos)){
+        ImGui::Text("Temperature:%f Humidity:%f", m_world.m_chunks[chunkPos]->m_temperature, m_world.m_chunks[chunkPos]->m_humidity);
+    }
     ImGui::End();
     ImGui::EndFrame();
 
