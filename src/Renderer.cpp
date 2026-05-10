@@ -17,7 +17,8 @@
 #include "Game.h"
 #include "ResourceManager.h"
 
-Renderer::Renderer(World& worldInstance, ThreadPool& threadPoolInstance, int renderDistance) : m_world(worldInstance), m_threadPool(threadPoolInstance){
+Renderer::Renderer(World& worldInstance, ThreadPool& threadPoolInstance, int renderDistance, BlockRegistry& blockRegistryInstance)
+: m_world(worldInstance), m_threadPool(threadPoolInstance), m_blockRegistry(blockRegistryInstance){
     m_renderDistance = renderDistance;
 }
 
@@ -26,35 +27,20 @@ void Renderer::init(){
     loadTextures();
     setupBuffers();
 }
-
-// void Renderer::render(glm::mat4 viewMatrix){
-//
-//     glm::mat4 model(1.0f);
-//     model = glm::translate(model, glm::vec3(0.5f, 0.5f, 0.0f));
-//
-//     auto view = viewMatrix;
-//
-//     glm::mat4 projection = glm::perspective(glm::radians(90.0f), 800.0f / 600.0f, 0.1f, 100.0f);
-//
-//     glm::mat4 mvp = projection * view * model;
-//
-//     m_mesh.draw(mvp, m_shader.m_shaderProgramID, m_texture);
-// }
-
 void Renderer::loadTextures(){
     glUseProgram(m_shader.m_shaderProgramID);
-    std::vector<std::string> textureFiles = {
-        "../textures/block/dirt.png", //0
-        "../textures/block/grass_block_side.png",
-        "../textures/block/grass_block_top.png",
-        "../textures/block/stone.png",
-        "../textures/block/oak_planks.png",
-        "../textures/block/oak_log.png",
-        "../textures/block/oak_log_top.png",
-        "../textures/block/sand.png",
-        "../textures/block/water_still.png", //8
-        "../textures/block/grass_block_side_overlay.png" //9
-    };
+    // std::vector<std::string> textureFiles = {
+    //     "../textures/block/dirt.png", //0
+    //     "../textures/block/grass_block_side.png",
+    //     "../textures/block/grass_block_top.png",
+    //     "../textures/block/stone.png",
+    //     "../textures/block/oak_planks.png",
+    //     "../textures/block/oak_log.png",
+    //     "../textures/block/oak_log_top.png",
+    //     "../textures/block/sand.png",
+    //     "../textures/block/water_still.png", //8
+    //     "../textures/block/grass_block_side_overlay.png" //9
+    // };
     glGenTextures(1, &m_texture);
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_texture);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -63,17 +49,17 @@ void Renderer::loadTextures(){
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_LOD_BIAS, -1.5f);
     int width = 16, height = 16;
-    int layerCount = textureFiles.size();
+    int layerCount = m_blockRegistry.textureLayerFileNames.size();
     int mipLevels = 5;
     glTexStorage3D(GL_TEXTURE_2D_ARRAY, mipLevels, GL_RGBA8, width, height, layerCount);
     for (int i = 0; i < layerCount; i++) {
         int widthImage, heightImage, nrChannels;
-        unsigned char* data = stbi_load(textureFiles[i].c_str(), &widthImage, &heightImage, &nrChannels, 4);
+        unsigned char* data = stbi_load(m_blockRegistry.textureLayerFileNames[i].c_str(), &widthImage, &heightImage, &nrChannels, 4);
         if (data != nullptr) {
             glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
             stbi_image_free(data);
         } else {
-            printf("Failed to load texture: %s\n", textureFiles[i].c_str());
+            printf("Failed to load texture: %s\n", m_blockRegistry.textureLayerFileNames[i].c_str());
         }
     }
     glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
@@ -322,10 +308,10 @@ void Renderer::update_mesh_chunk(const MeshJob& mesh_job, ThreadPool::SafeQueue<
     for (int x = 0; x < 16; ++x){
         for (int y = 0; y < 16; ++y){
             for (int z = 0; z < 16; ++z){
-                if (World::BLOCK_MATERIALS::is_solid(current_block->m_material_type)){
+                if (m_blockRegistry.getBlockByID(current_block->m_material_type).isSolid){
                     perform_culling(x, y, z, current_block->m_material_type, opaque_faces, mesh_job,
                      mesh_job.center_chunk->m_blockTemperatures[x][z], mesh_job.center_chunk->m_blockHumidities[x][z]);
-                } else if (World::BLOCK_MATERIALS::is_transparent(current_block->m_material_type)){
+                } else if (m_blockRegistry.getBlockByID(current_block->m_material_type).isTransparent){
                     perform_culling(x, y, z, current_block->m_material_type, transparent_faces, mesh_job,
                      mesh_job.center_chunk->m_blockTemperatures[x][z], mesh_job.center_chunk->m_blockHumidities[x][z]);
                 }
@@ -375,46 +361,20 @@ void Renderer::perform_culling(int x, int y, int z,
     // Y+
     neighbour_material = get_block_material(mesh_job, x, y + 1, z);
     if (should_render_face(current_block_material, neighbour_material) or
-        (current_block_material == World::BLOCK_MATERIALS::WATER and neighbour_material != World::BLOCK_MATERIALS::WATER)) {
+        (current_block_material == m_blockRegistry.getIDByName("WATER") and neighbour_material != m_blockRegistry.getIDByName("WATER"))) {
         add_face(4, x, y, z, current_block_material, faces, mesh_job, temperature, humidity);
     }
 }
 bool Renderer::should_render_face(unsigned short current_material, unsigned short neighbour_material){
-    if (World::BLOCK_MATERIALS::is_solid(neighbour_material)) return false;
+    if (m_blockRegistry.getBlockByID(neighbour_material).isSolid) return false;
 
-    if (World::BLOCK_MATERIALS::is_solid(current_material)) return true;
+    if (m_blockRegistry.getBlockByID(current_material).isSolid) return true;
 
     return current_material != neighbour_material;
 }
 
 float Renderer::getTextureLayer(unsigned short material_type, int face_id){
-    float textureLayer = 0;
-    if (material_type == World::BLOCK_MATERIALS::DIRT){
-        textureLayer = 0;
-    } else if (material_type == World::BLOCK_MATERIALS::GRASS_BLOCK){
-        if (face_id <= 3){
-            textureLayer = 1;
-        } else if (face_id == 4){
-            textureLayer = 2;
-        } else if (face_id == 5){
-            textureLayer = 0;
-        }
-    } else if (material_type == World::BLOCK_MATERIALS::STONE){
-        textureLayer = 3;
-    } else if (material_type == World::BLOCK_MATERIALS::OAK_PLANKS){
-        textureLayer = 4;
-    } else if (material_type == World::BLOCK_MATERIALS::OAK_LOG){
-        if (face_id <= 3){
-            textureLayer = 5;
-        } else{
-            textureLayer = 6;
-        }
-    } else if (material_type == World::BLOCK_MATERIALS::SAND){
-        textureLayer = 7;
-    } else if (material_type == World::BLOCK_MATERIALS::WATER){
-        textureLayer = 8;
-    }
-    return textureLayer;
+    return static_cast<float>(m_blockRegistry.getBlockByID(material_type).faceTextureLayers[face_id]);
 }
 
 
@@ -423,7 +383,7 @@ void Renderer::add_face(int face_id, int x, int y, int z,
                         std::vector<MeshSSBO::VoxelFaceData>& faces, const MeshJob& job,
                         float temperature, float humidity
 ){
-    bool is_top_block_of_water = block_material == World::BLOCK_MATERIALS::WATER and get_block_material(job, x, y + 1, z) != World::BLOCK_MATERIALS::WATER;
+    bool is_top_block_of_water = block_material == m_blockRegistry.getIDByName("WATER") and get_block_material(job, x, y + 1, z) != m_blockRegistry.getIDByName("WATER");
 
     // Get Atlas Coordinates
     float textureLayer = getTextureLayer(block_material, face_id);
@@ -439,7 +399,7 @@ void Renderer::add_face(int face_id, int x, int y, int z,
     }
 
     // Pack the struct
-    MeshSSBO::VoxelFaceData faceData;
+    MeshSSBO::VoxelFaceData faceData{};
     faceData.x = (float)x;
     faceData.y = (float)y;
     faceData.z = (float)z;
@@ -447,7 +407,17 @@ void Renderer::add_face(int face_id, int x, int y, int z,
 
     faceData.textureLayer = textureLayer;
     faceData.temperature = temperature;
-    faceData.isWater = is_top_block_of_water ? 1.0f : 0.0f;
+    faceData.behaviourFlag = 0;
+    if (is_top_block_of_water){
+        faceData.behaviourFlag = 4;
+    } else if (block_material == m_blockRegistry.getIDByName("WATER")){
+        faceData.behaviourFlag = 3;
+    } else if (face_id == 4 and block_material == m_blockRegistry.getIDByName("GRASS_BLOCK")){
+        faceData.behaviourFlag = 1;
+    } else if (face_id < 4 and block_material == m_blockRegistry.getIDByName("GRASS_BLOCK")){
+        faceData.behaviourFlag = 2;
+    }
+
     faceData.humidity = humidity;
 
     faceData.ao0 = ao_results[0];
@@ -481,9 +451,9 @@ unsigned char Renderer::compute_ao(const MeshJob& job, int x, int y, int z,
                                    int dcx, int dcy, int dcz,
                                    unsigned int block_material)   // corner diagonal
 {
-    bool side1  = World::BLOCK_MATERIALS::is_solid(get_block_material(job, x + dx1, y + dy1, z + dz1));
-    bool side2  = World::BLOCK_MATERIALS::is_solid(get_block_material(job, x + dx2, y + dy2, z + dz2));
-    bool corner = World::BLOCK_MATERIALS::is_solid(get_block_material(job, x + dcx, y + dcy, z + dcz));
+    bool side1  = m_blockRegistry.getBlockByID(get_block_material(job, x + dx1, y + dy1, z + dz1)).isSolid;
+    bool side2  = m_blockRegistry.getBlockByID(get_block_material(job, x + dx2, y + dy2, z + dz2)).isSolid;
+    bool corner = m_blockRegistry.getBlockByID(get_block_material(job, x + dcx, y + dcy, z + dcz)).isSolid;
 
     int ao;
     if (side1 && side2)

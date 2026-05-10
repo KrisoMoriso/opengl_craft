@@ -1,0 +1,60 @@
+{
+  "0": {
+    "name": "AIR",
+    "isSolid": false,
+    "isTransparent": true,
+    "textures": null
+  },
+  "1": {
+    "name": "DIRT",
+    "isSolid": true,
+    "isTransparent": false,
+    "textures": {
+      "all": "../textures/block/dirt.png"
+    }
+  },
+  "2": {
+    "name": "GRASS_BLOCK",
+    "isSolid": true,
+    "isTransparent": false,
+    "textures": {
+      "top": "../textures/block/grass_block_top.png",
+      "bottom": "../textures/block/dirt.png",
+      "sides": "../textures/block/grass_block_side.png"
+    }
+  },
+  "3": {
+    "name": "SAND",
+    "isSolid": true,
+    "isTransparent": false,
+    "textures": {
+      "all" : "../textures/block/sand.png"
+    }
+  },
+  "4": {
+    "name": "STONE",
+    "isSolid": true,
+    "isTransparent": false,
+    "textures": {
+      "all" : "../textures/block/stone.png"
+    }
+  },
+  "5": {
+    "name": "OAK_LOG",
+    "isSolid": true,
+    "isTransparent": false,
+    "textures": {
+      "top": "../textures/block/oak_log_top.png",
+      "bottom": "../textures/block/oak_log_top.png",
+      "sides": "../textures/block/oak_log.png"
+    }
+  },
+  "7": {
+    "name": "WATER",
+    "isSolid": false,
+    "isTransparent": true,
+    "textures": {
+      "all": "../textures/block/water_still.png"
+    }
+  }
+}

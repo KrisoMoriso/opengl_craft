@@ -17,13 +17,14 @@
 
 
 Game::Game() : m_threadPool(6),
-                m_renderer(m_world, m_threadPool, RENDER_DISTANCE),
-                m_world(m_threadPool, m_renderer, WORLD_SEED, RENDER_DISTANCE)
+                m_renderer(m_world, m_threadPool, RENDER_DISTANCE, m_blockRegistry),
+                m_world(m_threadPool, m_renderer, WORLD_SEED, RENDER_DISTANCE, m_blockRegistry)
 {
     setupWindow();
     if (m_window == nullptr) printf("failed to init glfw window");
     setupImGui(m_window);
     m_camera = Camera(m_window, {0.0f,170.0f,3.0f});
+    m_blockRegistry.loadFromJSON("../blocktypes/blocktypes.json");
     m_renderer.init();
 }
 
@@ -50,9 +51,6 @@ void Game::terminateGame(){
     glfwDestroyWindow(m_window);
     glfwTerminate();
 }
-
-
-
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)
 {

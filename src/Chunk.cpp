@@ -6,7 +6,7 @@ Chunk::Chunk() {
     for (int x = 0; x <= 15; ++x) {
         for (int y = 0; y <= 15; ++y) {
             for (int z = 0; z <= 15; ++z) {
-                m_blocks[z + y * 16 + x*256] = Block( World::BLOCK_MATERIALS::STONE );
+                m_blocks[z + y * 16 + x*256] = Block( 4 );
             }
         }
     }

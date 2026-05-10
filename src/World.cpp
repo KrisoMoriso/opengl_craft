@@ -17,7 +17,8 @@
 #include <cmath>
 #include <glm/glm.hpp>
 #include <algorithm>
-World::World(ThreadPool& threadPool, Renderer& renderer, int seed, int renderDistance) : m_thread_pool(threadPool), m_renderer(renderer)
+World::World(ThreadPool& threadPool, Renderer& renderer, int seed, int renderDistance, BlockRegistry &blockRegistryInstance)
+: m_thread_pool(threadPool), m_renderer(renderer), m_blockRegistry(blockRegistryInstance)
 {
     m_seed = seed;
     m_render_distance = renderDistance;
@@ -225,42 +226,42 @@ void World::generate_chunk(GenerationJob generation_job,
 
             for (int y = 0; y <= 15; ++y) {
                 int world_y = result.chunk_pos.y * 16 + y;
-                unsigned short current_material = BLOCK_MATERIALS::AIR;
+                unsigned short current_material = m_blockRegistry.getIDByName("AIR");
 
                 if (world_y > surface_y){
                     if (world_y < WATER_LEVEL){
-                        current_material = BLOCK_MATERIALS::WATER;
+                        current_material = m_blockRegistry.getIDByName("WATER");
                     } else{
-                        current_material = BLOCK_MATERIALS::AIR;
+                        current_material = m_blockRegistry.getIDByName("AIR");
                     }
                 }
                 else if (world_y == surface_y){
                     if (world_y < SAND_LEVEL){
-                        current_material = BLOCK_MATERIALS::SAND;
+                        current_material = m_blockRegistry.getIDByName("SAND");
 
                     } else if (surface_y > MOUNTAIN_LEVEL){
-                        current_material = BLOCK_MATERIALS::STONE;
+                        current_material = m_blockRegistry.getIDByName("STONE");
                     } else{
-                        current_material = BLOCK_MATERIALS::GRASS_BLOCK;
+                        current_material = m_blockRegistry.getIDByName("GRASS_BLOCK");
                         if (world_y < WATER_LEVEL - 1){
-                            current_material = BLOCK_MATERIALS::DIRT;
+                            current_material = m_blockRegistry.getIDByName("DIRT");
                         }
                     }
                 }
                 else if (world_y > surface_y -4){
                     if (surface_y < SAND_LEVEL){
-                        current_material = BLOCK_MATERIALS::SAND;
+                        current_material = m_blockRegistry.getIDByName("SAND");
                     } else if (surface_y > MOUNTAIN_LEVEL){
-                        current_material = BLOCK_MATERIALS::STONE;
+                        current_material = m_blockRegistry.getIDByName("STONE");
                     } else{
-                        current_material = BLOCK_MATERIALS::DIRT;
+                        current_material = m_blockRegistry.getIDByName("DIRT");
                     }
                 } else{
-                        current_material = BLOCK_MATERIALS::STONE;
+                        current_material = m_blockRegistry.getIDByName("STONE");
 
                 }
 
-                if (current_material != BLOCK_MATERIALS::AIR) {
+                if (current_material != m_blockRegistry.getIDByName("AIR")) {
 
                     float mask_val = noise_cave_mask.GetNoise((float)world_x, (float)world_y, (float)world_z);
 
@@ -277,14 +278,14 @@ void World::generate_chunk(GenerationJob generation_job,
                             carve_threshold += (5 - depth_from_surface) * 0.008f;
                         }
 
-                        if (std::abs(cave_val) < carve_threshold and BLOCK_MATERIALS::is_solid(current_material)) {
-                            current_material = BLOCK_MATERIALS::AIR;
+                        if (std::abs(cave_val) < carve_threshold and m_blockRegistry.getBlockByID(current_material).isSolid) {
+                            current_material = m_blockRegistry.getIDByName("AIR");
                         }
                     }
                 }
 
                 if (world_y == 1){
-                    current_material = BLOCK_MATERIALS::STONE;
+                    current_material = m_blockRegistry.getIDByName("STONE");
 
                 }
 

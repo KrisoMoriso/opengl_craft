@@ -94,6 +94,9 @@ set(SOURCES
         src/Block.h
         src/Chunk.cpp
         src/Chunk.h
+        include/json.hpp
+        src/BlockRegistry.cpp
+        src/BlockRegistry.h
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${IMGUI_SOURCES})

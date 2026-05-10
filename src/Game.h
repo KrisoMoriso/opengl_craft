@@ -1,5 +1,7 @@
 #pragma once
 #include <glad/glad.h>
+
+#include "BlockRegistry.h"
 #include "Camera.h"
 #include "Renderer.h"
 #include "GLFW/glfw3.h"
@@ -15,6 +17,7 @@ public:
 private:
     const int RENDER_DISTANCE = 20;
     const int WORLD_SEED = 12521;
+    BlockRegistry m_blockRegistry;
     ThreadPool m_threadPool;
     Renderer m_renderer;
     GLFWwindow* m_window;

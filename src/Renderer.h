@@ -1,5 +1,7 @@
 #pragma once
 #include <glad/glad.h>
+
+#include "BlockRegistry.h"
 #include "MeshSSBO.h"
 #include "Shader.h"
 #include "glm/glm.hpp"
@@ -7,7 +9,7 @@
 #include "ThreadPool.h"
 class Renderer {
 public:
-    Renderer(World &worldInstance, ThreadPool& threadPoolInstance, int renderDistance);
+    Renderer(World &worldInstance, ThreadPool& threadPoolInstance, int renderDistance, BlockRegistry &blockRegistryInstance);
     void init();
     // void render(glm::mat4 viewMatrix);
 private:
@@ -34,6 +36,7 @@ private:
     int m_renderDistance;
     World& m_world;
     ThreadPool& m_threadPool;
+    BlockRegistry& m_blockRegistry;
     std::vector<MeshSSBO::VoxelFaceData> m_faces;
     struct MeshResult{
         std::vector<MeshSSBO::VoxelFaceData> opaque_faces;
@@ -63,7 +66,7 @@ private:
     std::queue<World::ChunkPos> m_queue_to_mesh_priority;
     World::ChunkPos m_last_player_chunk;
     std::vector<World::ChunkPos> m_chunks_to_unload;
-    static float getTextureLayer(unsigned short material_type, int face_id);
+    float getTextureLayer(unsigned short material_type, int face_id);
     void upload_mesh_to_gpu(const MeshResult& mesh_result);
     unsigned char compute_ao(const MeshJob& job, int x, int y, int z, int dx1, int dy1, int dz1, int dx2, int dy2,
                              int dz2,

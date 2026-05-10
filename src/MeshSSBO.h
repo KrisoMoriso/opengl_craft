@@ -11,7 +11,8 @@ public:
         float faceId;
 
         float textureLayer, temperature;
-        float isWater, humidity;
+        float behaviourFlag, humidity;
+        //0 = Normal, 1 = Grass Top, 2 = Grass Side, 3 = Water, 4 = WaterTop
         float ao0, ao1, ao2, ao3;
     };
     void upload(const std::vector<VoxelFaceData> &dataVector);

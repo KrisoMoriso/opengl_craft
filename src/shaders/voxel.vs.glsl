@@ -3,7 +3,8 @@
 // 1. Memory-aligned blueprint matching our C++ struct exactly
 struct VoxelFaceData {
     vec4 positionAndFace; // x, y, z, faceId
-    vec4 textureLayerAndTempHumidity; // textureLayer, temperature, isWater, humidity
+    vec4 textureLayerAndTempHumidity; // textureLayer, temperature, behaviourFlag, humidity
+    //behaviourFlag : 0 = Normal, 1 = Grass Top, 2 = Grass Side, 3 = Water, 4 = WaterTop
     vec4 ao;              // ao0, ao1, ao2, ao3
 };
 
@@ -20,6 +21,8 @@ out float textureLayer;
 
 out float temperature;
 out float humidity;
+
+out float behaviourFlag;
 // --- YOUR EXACT C++ ARRAYS MAPPED TO GLSL ---
 
 // Renderer.h: m_face_vertices flattened into 24 points
@@ -51,9 +54,11 @@ const float FACE_SHADES[6] = float[](
 void main() {
     int blueprintIndex = gl_VertexID / 6;
     int vertexInFace   = gl_VertexID % 6;
-
     VoxelFaceData face = faces[blueprintIndex];
     int faceId = int(face.positionAndFace.w);
+
+
+    behaviourFlag = face.textureLayerAndTempHumidity.z;
 
     // --- YOUR EXACT C++ AO INDEX FLIPPING LOGIC ---
     int uniqueCornerId;
@@ -71,7 +76,7 @@ void main() {
 
     // Check for water logic (you had a y = 0.875f check in add_face).
     // You can pass a flag in pad1 to handle this!
-    if (face.textureLayerAndTempHumidity.z > 0.0 && localPos.y == 1.0) localPos.y = 0.875;
+    if (behaviourFlag == 4 && localPos.y == 1.0) localPos.y = 0.875;
 
     temperature = face.textureLayerAndTempHumidity.y;
     humidity = face.textureLayerAndTempHumidity.w;
@@ -92,7 +97,7 @@ void main() {
     else                          cornerAO = face.ao.w;
 
     float combinedShade = FACE_SHADES[faceId] * (cornerAO / 255.0);
-    if(textureLayer == 8.0){ //water
+    if(behaviourFlag == 3 || behaviourFlag == 4){ //water
         fragColor = vec4(combinedShade, combinedShade, combinedShade, 1.0) * vec4(0.0, 0.122, 0.9, 1.0);
     } else {
         fragColor = vec4(combinedShade, combinedShade, combinedShade, 1.0);
